@@ -1,0 +1,5 @@
+description: "Default Docker executor"
+docker:
+  - image: cimg/node:20.18
+    environment:
+      - CIRCLECI: true

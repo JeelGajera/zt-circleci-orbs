@@ -1,0 +1,46 @@
+description: "Scan for security issues in web applications/APIs"
+parameters:
+  zt_token:
+    type: string
+  wait_for_analysis:
+    type: boolean
+steps:
+  - run:
+      name: "ZeroThreat AI Security Scan"
+      command: |
+        # Start the scan
+        response=$(curl -s -X POST https://api.zerothreat.ai/api/scan/devops -H "Content-Type: application/json" -d '{"token":"$[[ inputs.zt_token ]]"}')
+        echo "Scan initiation response: $response"
+        status=$(echo $response | jq -r '.status')
+        code=$(echo $response | jq -r '.code')
+        message=$(echo $response | jq -r '.message')
+        url=$(echo $response | jq -r '.url')
+        
+        if [ "$status" == 200 ]; then
+          echo "Scan started successfully. Scan Report Url: $url"
+        fi
+        
+        if [ "$status" != 200 ]; then
+          echo "Error: Failed to initiate scan. Reason: $message"
+          exit 1
+        fi
+
+        # Poll for scan status
+        if [ $inputs.wait_for_analysis == true ]
+          scanStatus=1
+          while [ "$scanStatus" -lt 3 ]; do
+            sleep 300
+            response=$(curl -s -X GET "https://api.zerothreat.ai/api/scan/devops/$code")
+            echo "Scan status response: $response"
+            scanStatus=$(echo $response | jq -r '.scanStatus')
+            
+            if [ "$scanStatus" >= 4 ]; then
+              echo "Scan Completed Successfully."
+              exit 1
+            fi
+            if [ -z "$scanStatus" ] || [ "$scanStatus" == "null" ]; then
+              echo "Error: Scan polling failed."
+              exit 1
+            fi
+          done
+        fi

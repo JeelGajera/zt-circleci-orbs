@@ -1,0 +1,12 @@
+description: >
+  Example usage of the ZeroThreat AI for vulnerability scanning.
+
+usage:
+  version: 2.1
+  orbs:
+    vuln-scan: zt-cci-orb/zt-cci-orb@dev:0.0.1
+  workflows:
+    use-my-orb:
+      jobs:
+        - vuln-scan/scan-job:
+            zt_token: "AWD4TRX" # Replace with actual token.
