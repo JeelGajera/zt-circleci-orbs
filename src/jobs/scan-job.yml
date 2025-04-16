@@ -1,12 +1,11 @@
 description: Scan for security issues in web applications/APIs
 parameters:
-  zt_token:
+  ZT_TOKEN:
     description: 'ZT_TOKEN to authenticate API request & start the scan.'
     type: string
-    required: true
-  wait_for_analysis:
+  WAIT_FOR_ANALYSIS:
     description: 'Set this true to wait for analysis to complete before finishing job.'
-    required: false
+    type: boolean
     default: false
 docker:
   - image: alpine:latest
@@ -17,4 +16,5 @@ steps:
         apk add --no-cache curl jq  # Install curl and jq
   - checkout
   - scan:
-      zt_token: << parameters.zt_token >>
+      ZT_TOKEN: << parameters.ZT_TOKEN >>
+      WAIT_FOR_ANALYSIS: << parameters.WAIT_FOR_ANALYSIS >>

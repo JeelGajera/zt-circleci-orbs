@@ -1,26 +1,27 @@
-# Orb Source
+# Zero Threat AI Powered Security Scanner
 
-Orbs are shipped as individual `orb.yml` files, however, to make development easier, it is possible to author an orb in _unpacked_ form, which can be _packed_ with the CircleCI CLI and published.
+Secure your code proactively. Use the ZeroThreat AI Powered Web Application/API Security Scanner to perform Dynamic Analysis Security Testing (DAST). It enables comprehensive Dynamic Analysis Security Testing (DAST) to detect vulnerabilities, making findings readily available on the ZeroThreat Portal for continuous monitoring.
 
-The default `.circleci/config.yml` file contains the configuration code needed to automatically pack, test, and deploy any changes made to the contents of the orb source in this directory.
+## Inputs
 
-## @orb.yml
+| Input               | Description                                                          | Required | Default |
+| ------------------- | -------------------------------------------------------------------- | -------- | ------- |
+| `zt_token`          | ZT_TOKEN to authenticate API request & start the scan.               | Yes      |         |
+| `wait_for_analysis` | Set this true to wait for analysis to complete before finishing job. | No       | false   |
 
-This is the entry point for our orb "tree", which becomes our `orb.yml` file later.
 
-Within the `@orb.yml` we generally specify 4 configuration keys
+## How It Works
 
-**Keys**
+1. **ZeroThreat AI Scanner**: The DAST scan is triggered by passing the `zt_token`. Each token corresponds to a specific target defined within the ZeroThreat application. Upon receiving the token, the ZeroThreat DevOps Bot executes prerequisite checks before commencing the scan process.
+2. **Scan Report**: As soon as the ZeroThreat DevOps Bot starts the security scan, The scan report will be available in the ZeroThreat Portal.
 
-1. **version**
-    Specify version 2.1 for orb-compatible configuration `version: 2.1`
-2. **description**
-    Give your orb a description. Shown within the CLI and orb registry
-3. **display**
-    Specify the `home_url` referencing documentation or product URL, and `source_url` linking to the orb's source repository.
-4. **orbs**
-    (optional) Some orbs may depend on other orbs. Import them here.
+### Secrets Setup
+1. Generate the `zt_token` from the ZeroThreat Portal.
+   
+2. Add the secret where required.
 
-## See:
- - [Orb Author Intro](https://circleci.com/docs/2.0/orb-author-intro/#section=configuration)
- - [Reusable Configuration](https://circleci.com/docs/2.0/reusing-config)
+
+## Notes
+
+- ZeroThreat offers a centralized dashboard displaying all scan results.
+

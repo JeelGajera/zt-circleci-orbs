@@ -1,0 +1,7 @@
+version: 2.1
+
+description: >
+  Secure your code proactively. Use the ZeroThreat AI Powered Web Application/API Security Scanner to perform Dynamic Analysis Security Testing (DAST). It enables comprehensive Dynamic Analysis Security Testing (DAST) to detect vulnerabilities, making findings readily available on the ZeroThreat Portal for review.
+display:
+  home_url: "https://zerothreat.ai/"
+  source_url: "https://github.com/zerothreatai/circleci-orbs"

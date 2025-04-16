@@ -1,15 +1,15 @@
 description: "Scan for security issues in web applications/APIs"
 parameters:
-  zt_token:
+  ZT_TOKEN:
     type: string
-  wait_for_analysis:
+  WAIT_FOR_ANALYSIS:
     type: boolean
 steps:
   - run:
       name: "ZeroThreat AI Security Scan"
       command: |
         # Start the scan
-        response=$(curl -s -X POST https://api.zerothreat.ai/api/scan/devops -H "Content-Type: application/json" -d '{"token":"$[[ inputs.zt_token ]]"}')
+        response=$(curl -s -X POST https://api.zerothreat.ai/api/scan/devops -H "Content-Type: application/json" -d '{"token":"$[[ inputs.ZT_TOKEN ]]"}')
         echo "Scan initiation response: $response"
         status=$(echo $response | jq -r '.status')
         code=$(echo $response | jq -r '.code')
@@ -26,7 +26,7 @@ steps:
         fi
 
         # Poll for scan status
-        if [ $inputs.wait_for_analysis == true ]
+        if [ $inputs.WAIT_FOR_ANALYSIS == true ]
           scanStatus=1
           while [ "$scanStatus" -lt 3 ]; do
             sleep 300

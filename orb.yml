@@ -1,0 +1,61 @@
+version: 2.1
+description: |
+    Secure your code proactively. Use the ZeroThreat AI Powered Web Application/API Security Scanner to perform Dynamic Analysis Security Testing (DAST). It enables comprehensive Dynamic Analysis Security Testing (DAST) to detect vulnerabilities, making findings readily available on the ZeroThreat Portal for review.
+display:
+    home_url: https://zerothreat.ai/
+    source_url: https://github.com/zerothreatai/circleci-orbs
+commands:
+    scan:
+        description: Scan for security issues in web applications/APIs
+        parameters:
+            WAIT_FOR_ANALYSIS:
+                type: boolean
+            ZT_TOKEN:
+                type: string
+        steps:
+            - run:
+                command: "# Start the scan\nresponse=$(curl -s -X POST https://api.zerothreat.ai/api/scan/devops -H \"Content-Type: application/json\" -d '{\"token\":\"$[[ inputs.ZT_TOKEN ]]\"}')\necho \"Scan initiation response: $response\"\nstatus=$(echo $response | jq -r '.status')\ncode=$(echo $response | jq -r '.code')\nmessage=$(echo $response | jq -r '.message')\nurl=$(echo $response | jq -r '.url')\n\nif [ \"$status\" == 200 ]; then\n  echo \"Scan started successfully. Scan Report Url: $url\"\nfi\n\nif [ \"$status\" != 200 ]; then\n  echo \"Error: Failed to initiate scan. Reason: $message\"\n  exit 1\nfi\n\n# Poll for scan status\nif [ $inputs.WAIT_FOR_ANALYSIS == true ]\n  scanStatus=1\n  while [ \"$scanStatus\" -lt 3 ]; do\n    sleep 300\n    response=$(curl -s -X GET \"https://api.zerothreat.ai/api/scan/devops/$code\")\n    echo \"Scan status response: $response\"\n    scanStatus=$(echo $response | jq -r '.scanStatus')\n    \n    if [ \"$scanStatus\" >= 4 ]; then\n      echo \"Scan Completed Successfully.\"\n      exit 1\n    fi\n    if [ -z \"$scanStatus\" ] || [ \"$scanStatus\" == \"null\" ]; then\n      echo \"Error: Scan polling failed.\"\n      exit 1\n    fi\n  done\nfi\n"
+                name: ZeroThreat AI Security Scan
+executors:
+    default:
+        description: Default Docker executor
+        docker:
+            - environment:
+                - CIRCLECI: true
+              image: cimg/node:20.18
+jobs:
+    scan-job:
+        description: Scan for security issues in web applications/APIs
+        docker:
+            - image: alpine:latest
+        parameters:
+            WAIT_FOR_ANALYSIS:
+                default: false
+                description: Set this true to wait for analysis to complete before finishing job.
+                type: boolean
+            ZT_TOKEN:
+                description: ZT_TOKEN to authenticate API request & start the scan.
+                type: string
+        steps:
+            - run:
+                command: |
+                    apk add --no-cache curl jq  # Install curl and jq
+                name: Install curl and jq
+            - checkout
+            - scan:
+                WAIT_FOR_ANALYSIS: << parameters.WAIT_FOR_ANALYSIS >>
+                ZT_TOKEN: << parameters.ZT_TOKEN >>
+examples:
+    example:
+        description: |
+            Example usage of the ZeroThreat AI for vulnerability scanning.
+        usage:
+            version: "2.1"
+            orbs:
+                vuln-scan: zerothreat-ai/dast-scanner@0.0.1
+            workflows:
+                use-my-orb:
+                    jobs:
+                        - vuln-scan/scan-job:
+                            ZT_TOKEN: AWD4TRX
+
