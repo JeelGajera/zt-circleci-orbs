@@ -8,39 +8,51 @@ steps:
   - run:
       name: "ZeroThreat AI Security Scan"
       command: |
-        # Start the scan
-        response=$(curl -s -X POST https://api.zerothreat.ai/api/scan/devops -H "Content-Type: application/json" -d '{"token":"$[[ inputs.ZT_TOKEN ]]"}')
-        echo "Scan initiation response: $response"
-        status=$(echo $response | jq -r '.status')
-        code=$(echo $response | jq -r '.code')
-        message=$(echo $response | jq -r '.message')
-        url=$(echo $response | jq -r '.url')
-        
-        if [ "$status" == 200 ]; then
-          echo "Scan started successfully. Scan Report Url: $url"
-        fi
-        
-        if [ "$status" != 200 ]; then
-          echo "Error: Failed to initiate scan. Reason: $message"
+        # Validate ZT_TOKEN is provided
+        if [ -z "<<parameters.ZT_TOKEN>>" ]; then
+          echo "Error: ZT_TOKEN input is required but not provided."
           exit 1
         fi
 
-        # Poll for scan status
-        if [ $inputs.WAIT_FOR_ANALYSIS == true ]
+        echo "Starting ZeroThreat AI security scan..."
+
+        # Initiate the scan
+        response=$(curl -s -X POST https://api.zerothreat.ai/api/scan/devops \
+          -H "Content-Type: application/json" \
+          -d "{\"token\":\"<<parameters.ZT_TOKEN>>\"}")
+
+        status=$(echo "$response" | jq -r '.status')
+        code=$(echo "$response" | jq -r '.code')
+        message=$(echo "$response" | jq -r '.message')
+        url=$(echo "$response" | jq -r '.url')
+
+        if [ "$status" != "200" ]; then
+          echo "Failed to initiate scan"
+          echo "Reason: $message"
+          exit 1
+        fi
+
+        echo "Scan started successfully."
+        echo "Scan Report URL: $url"
+
+        # Optional: Wait for scan to complete
+        if [ "<<parameters.WAIT_FOR_ANALYSIS>>" == "true" ]; then
           scanStatus=1
-          while [ "$scanStatus" -lt 3 ]; do
+          while [ "$scanStatus" -lt 4 ]; do
             sleep 300
             response=$(curl -s -X GET "https://api.zerothreat.ai/api/scan/devops/$code")
-            echo "Scan status response: $response"
-            scanStatus=$(echo $response | jq -r '.scanStatus')
-            
-            if [ "$scanStatus" >= 4 ]; then
-              echo "Scan Completed Successfully."
+            scanStatus=$(echo "$response" | jq -r '.scanStatus')
+
+            if [ -z "$scanStatus" ] || [ "$scanStatus" = "null" ]; then
+              echo "Scan polling failed: invalid status response."
               exit 1
             fi
-            if [ -z "$scanStatus" ] || [ "$scanStatus" == "null" ]; then
-              echo "Error: Scan polling failed."
-              exit 1
+
+            if [ "$scanStatus" -ge 4 ]; then
+              echo "Scan completed successfully."
+              break
+            else
+              echo "Scan still in progress..."
             fi
           done
-        fi
+        fi 

@@ -4,9 +4,9 @@ description: >
 usage:
   version: 2.1
   orbs:
-    vuln-scan: zerothreat-ai/dast-scanner@0.0.1
+    vuln-scan: zerothreat-ai/dast-scanner@0.0.2
   workflows:
-    use-my-orb:
+    zerothreat-security-scan:
       jobs:
         - vuln-scan/scan-job:
             ZT_TOKEN: "AWD4TRX" # Replace with actual token.
