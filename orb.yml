@@ -14,7 +14,7 @@ commands:
                 type: string
         steps:
             - run:
-                command: "# Start the scan\nresponse=$(curl -s -X POST https://api.zerothreat.ai/api/scan/devops -H \"Content-Type: application/json\" -d '{\"token\":\"$[[ inputs.ZT_TOKEN ]]\"}')\necho \"Scan initiation response: $response\"\nstatus=$(echo $response | jq -r '.status')\ncode=$(echo $response | jq -r '.code')\nmessage=$(echo $response | jq -r '.message')\nurl=$(echo $response | jq -r '.url')\n\nif [ \"$status\" == 200 ]; then\n  echo \"Scan started successfully. Scan Report Url: $url\"\nfi\n\nif [ \"$status\" != 200 ]; then\n  echo \"Error: Failed to initiate scan. Reason: $message\"\n  exit 1\nfi\n\n# Poll for scan status\nif [ $inputs.WAIT_FOR_ANALYSIS == true ]\n  scanStatus=1\n  while [ \"$scanStatus\" -lt 3 ]; do\n    sleep 300\n    response=$(curl -s -X GET \"https://api.zerothreat.ai/api/scan/devops/$code\")\n    echo \"Scan status response: $response\"\n    scanStatus=$(echo $response | jq -r '.scanStatus')\n    \n    if [ \"$scanStatus\" >= 4 ]; then\n      echo \"Scan Completed Successfully.\"\n      exit 1\n    fi\n    if [ -z \"$scanStatus\" ] || [ \"$scanStatus\" == \"null\" ]; then\n      echo \"Error: Scan polling failed.\"\n      exit 1\n    fi\n  done\nfi\n"
+                command: "# Validate ZT_TOKEN is provided\nif [ -z \"<<parameters.ZT_TOKEN>>\" ]; then\n  echo \"Error: ZT_TOKEN input is required but not provided.\"\n  exit 1\nfi\n\necho \"Starting ZeroThreat AI security scan...\"\n\n# Initiate the scan\nresponse=$(curl -s -X POST https://api.zerothreat.ai/api/scan/devops \\\n  -H \"Content-Type: application/json\" \\\n  -d \"{\\\"token\\\":\\\"<<parameters.ZT_TOKEN>>\\\"}\")\n\nstatus=$(echo \"$response\" | jq -r '.status')\ncode=$(echo \"$response\" | jq -r '.code')\nmessage=$(echo \"$response\" | jq -r '.message')\nurl=$(echo \"$response\" | jq -r '.url')\n\nif [ \"$status\" != \"200\" ]; then\n  echo \"Failed to initiate scan\"\n  echo \"Reason: $message\"\n  exit 1\nfi\n\necho \"Scan started successfully.\"\necho \"Scan Report URL: $url\"\n\n# Optional: Wait for scan to complete\nif [ \"<<parameters.WAIT_FOR_ANALYSIS>>\" == \"true\" ]; then\n  scanStatus=1\n  while [ \"$scanStatus\" -lt 4 ]; do\n    sleep 300\n    response=$(curl -s -X GET \"https://api.zerothreat.ai/api/scan/devops/$code\")\n    scanStatus=$(echo \"$response\" | jq -r '.scanStatus')\n\n    if [ -z \"$scanStatus\" ] || [ \"$scanStatus\" = \"null\" ]; then\n      echo \"Scan polling failed: invalid status response.\"\n      exit 1\n    fi\n\n    if [ \"$scanStatus\" -ge 4 ]; then\n      echo \"Scan completed successfully.\"\n      break\n    else\n      echo \"Scan still in progress...\"\n    fi\n  done\nfi \n"
                 name: ZeroThreat AI Security Scan
 executors:
     default:
@@ -52,9 +52,9 @@ examples:
         usage:
             version: "2.1"
             orbs:
-                vuln-scan: zerothreat-ai/dast-scanner@0.0.1
+                vuln-scan: zerothreat-ai/dast-scanner@0.0.2
             workflows:
-                use-my-orb:
+                zerothreat-security-scan:
                     jobs:
                         - vuln-scan/scan-job:
                             ZT_TOKEN: AWD4TRX
