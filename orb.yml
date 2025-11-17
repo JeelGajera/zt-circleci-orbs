@@ -8,13 +8,71 @@ commands:
     scan:
         description: Scan for security issues in web applications/APIs
         parameters:
+            ON_PREM_PROXY_API_URL:
+                type: string
             WAIT_FOR_ANALYSIS:
                 type: boolean
             ZT_TOKEN:
                 type: string
         steps:
             - run:
-                command: "# Validate ZT_TOKEN is provided\nif [ -z \"<<parameters.ZT_TOKEN>>\" ]; then\n  echo \"Error: ZT_TOKEN input is required but not provided.\"\n  exit 1\nfi\n\necho \"Starting ZeroThreat AI security scan...\"\n\n# Initiate the scan\nresponse=$(curl -s -X POST https://api.zerothreat.ai/api/scan/devops \\\n  -H \"Content-Type: application/json\" \\\n  -d \"{\\\"token\\\":\\\"<<parameters.ZT_TOKEN>>\\\"}\")\n\nstatus=$(echo \"$response\" | jq -r '.status')\ncode=$(echo \"$response\" | jq -r '.code')\nmessage=$(echo \"$response\" | jq -r '.message')\nurl=$(echo \"$response\" | jq -r '.url')\n\nif [ \"$status\" != \"200\" ]; then\n  echo \"Failed to initiate scan\"\n  echo \"Reason: $message\"\n  exit 1\nfi\n\necho \"Scan started successfully.\"\necho \"Scan Report URL: $url\"\n\n# Optional: Wait for scan to complete\nif [ \"<<parameters.WAIT_FOR_ANALYSIS>>\" == \"true\" ]; then\n  scanStatus=1\n  while [ \"$scanStatus\" -lt 4 ]; do\n    sleep 300\n    response=$(curl -s -X GET \"https://api.zerothreat.ai/api/scan/devops/$code\")\n    scanStatus=$(echo \"$response\" | jq -r '.scanStatus')\n\n    if [ -z \"$scanStatus\" ] || [ \"$scanStatus\" = \"null\" ]; then\n      echo \"Scan polling failed: invalid status response.\"\n      exit 1\n    fi\n\n    if [ \"$scanStatus\" -ge 4 ]; then\n      echo \"Scan completed successfully.\"\n      break\n    else\n      echo \"Scan still in progress...\"\n    fi\n  done\nfi \n"
+                command: |
+                    # Validate ZT_TOKEN is provided
+                    if [ -z "<<parameters.ZT_TOKEN>>" ]; then
+                      echo "Error: ZT_TOKEN input is required but not provided."
+                      exit 1
+                    fi
+
+                    # Determine base API endpoint
+                    if [ -n "<<parameters.ON_PREM_PROXY_API_URL>>" ]; then
+                      BASE_URL="<<parameters.ON_PREM_PROXY_API_URL>>"
+                    else
+                      BASE_URL="https://api.zerothreat.ai"
+                    fi
+
+                    echo "Using API endpoint: $BASE_URL"
+                    echo "Starting ZeroThreat AI security scan..."
+
+                    # Initiate the scan
+                    response=$(curl -s -X POST "$BASE_URL/api/scan/devops" \
+                      -H "Content-Type: application/json" \
+                      -d "{\"token\":\"<<parameters.ZT_TOKEN>>\"}")
+
+                    status=$(echo "$response" | jq -r '.status')
+                    code=$(echo "$response" | jq -r '.code')
+                    message=$(echo "$response" | jq -r '.message')
+                    url=$(echo "$response" | jq -r '.url')
+
+                    if [ "$status" != "200" ]; then
+                      echo "Failed to initiate scan"
+                      echo "Reason: $message"
+                      exit 1
+                    fi
+
+                    echo "Scan started successfully."
+                    echo "Scan Report URL: $url"
+
+                    # Optional: Wait for scan to complete
+                    if [ "<<parameters.WAIT_FOR_ANALYSIS>>" == "true" ]; then
+                      scanStatus=1
+                      while [ "$scanStatus" -lt 4 ]; do
+                        sleep 300
+                        response=$(curl -s -X GET "$BASE_URL/api/scan/devops/$code")
+                        scanStatus=$(echo "$response" | jq -r '.scanStatus')
+
+                        if [ -z "$scanStatus" ] || [ "$scanStatus" = "null" ]; then
+                          echo "Scan polling failed: invalid status response."
+                          exit 1
+                        fi
+
+                        if [ "$scanStatus" -ge 4 ]; then
+                          echo "Scan completed successfully."
+                          break
+                        else
+                          echo "Scan still in progress..."
+                        fi
+                      done
+                    fi
                 name: ZeroThreat AI Security Scan
 executors:
     default:
@@ -29,6 +87,10 @@ jobs:
         docker:
             - image: alpine:latest
         parameters:
+            ON_PREM_PROXY_API_URL:
+                default: ""
+                description: Set proxy url host to scan internal targets.
+                type: string
             WAIT_FOR_ANALYSIS:
                 default: false
                 description: Set this true to wait for analysis to complete before finishing job.
@@ -43,6 +105,7 @@ jobs:
                 name: Install curl and jq
             - checkout
             - scan:
+                ON_PREM_PROXY_API_URL: << parameters.ON_PREM_PROXY_API_URL >>
                 WAIT_FOR_ANALYSIS: << parameters.WAIT_FOR_ANALYSIS >>
                 ZT_TOKEN: << parameters.ZT_TOKEN >>
 examples:

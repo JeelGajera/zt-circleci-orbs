@@ -1,12 +1,16 @@
 description: Scan for security issues in web applications/APIs
 parameters:
   ZT_TOKEN:
-    description: 'ZT_TOKEN to authenticate API request & start the scan.'
+    description: "ZT_TOKEN to authenticate API request & start the scan."
     type: string
   WAIT_FOR_ANALYSIS:
-    description: 'Set this true to wait for analysis to complete before finishing job.'
+    description: "Set this true to wait for analysis to complete before finishing job."
     type: boolean
     default: false
+  ON_PREM_PROXY_API_URL:
+    description: "Set proxy url host to scan internal targets."
+    type: string
+    default: ""
 docker:
   - image: alpine:latest
 steps:
@@ -18,3 +22,4 @@ steps:
   - scan:
       ZT_TOKEN: << parameters.ZT_TOKEN >>
       WAIT_FOR_ANALYSIS: << parameters.WAIT_FOR_ANALYSIS >>
+      ON_PREM_PROXY_API_URL: << parameters.ON_PREM_PROXY_API_URL >>

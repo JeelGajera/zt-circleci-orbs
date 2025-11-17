@@ -4,6 +4,8 @@ parameters:
     type: string
   WAIT_FOR_ANALYSIS:
     type: boolean
+  ON_PREM_PROXY_API_URL:
+    type: string
 steps:
   - run:
       name: "ZeroThreat AI Security Scan"
@@ -14,10 +16,18 @@ steps:
           exit 1
         fi
 
+        # Determine base API endpoint
+        if [ -n "<<parameters.ON_PREM_PROXY_API_URL>>" ]; then
+          BASE_URL="<<parameters.ON_PREM_PROXY_API_URL>>"
+        else
+          BASE_URL="https://api.zerothreat.ai"
+        fi
+
+        echo "Using API endpoint: $BASE_URL"
         echo "Starting ZeroThreat AI security scan..."
 
         # Initiate the scan
-        response=$(curl -s -X POST https://api.zerothreat.ai/api/scan/devops \
+        response=$(curl -s -X POST "$BASE_URL/api/scan/devops" \
           -H "Content-Type: application/json" \
           -d "{\"token\":\"<<parameters.ZT_TOKEN>>\"}")
 
@@ -40,7 +50,7 @@ steps:
           scanStatus=1
           while [ "$scanStatus" -lt 4 ]; do
             sleep 300
-            response=$(curl -s -X GET "https://api.zerothreat.ai/api/scan/devops/$code")
+            response=$(curl -s -X GET "$BASE_URL/api/scan/devops/$code")
             scanStatus=$(echo "$response" | jq -r '.scanStatus')
 
             if [ -z "$scanStatus" ] || [ "$scanStatus" = "null" ]; then
@@ -55,4 +65,4 @@ steps:
               echo "Scan still in progress..."
             fi
           done
-        fi 
+        fi

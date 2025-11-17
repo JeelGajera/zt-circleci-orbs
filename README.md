@@ -8,6 +8,7 @@ Secure your code proactively. Use the ZeroThreat AI Powered Web Application/API 
 | ------------------- | -------------------------------------------------------------------- | -------- | ------- |
 | `zt_token`          | ZT_TOKEN to authenticate API request & start the scan.               | Yes      |         |
 | `wait_for_analysis` | Set this true to wait for analysis to complete before finishing job. | No       | false   |
+| `on_prem_proxy_api_url` | Set proxy url host to scan internal targets. | No       |     |
 
 
 ## How It Works
